@@ -218,3 +218,59 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ---------------------------------------------------------------------------
+# Project-specific
+# ---------------------------------------------------------------------------
+
+# Local virtual environment
+cloudproj/
+
+# Environment files (keep examples)
+.env
+.env.*
+!.env.example
+
+# Node / frontend
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+!terraform.tfvars.example
+
+# Kubernetes / secrets
+k8s/**/secret*.yaml
+k8s/**/secret*.yml
+!k8s/**/secret.example.yaml
+!k8s/**/secret.example.yml
+
+# Raw licensed datasets (adapted output is committed)
+app/db/seed/raw/*
+!app/db/seed/raw/.gitkeep
+
+# Run logs (structure kept via .gitkeep)
+logs/**/*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

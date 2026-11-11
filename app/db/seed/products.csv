@@ -1,0 +1,21 @@
+sku,name,description,category,supplier,unit_price,cost_price,stock_quantity,reorder_level
+SKU-1001,Wireless Mouse,2.4GHz ergonomic wireless mouse,Peripherals,TechSource Ltd,24.99,15.00,120,25
+SKU-1002,Mechanical Keyboard,Backlit mechanical keyboard with brown switches,Peripherals,TechSource Ltd,79.99,48.00,18,20
+SKU-1003,27-inch 4K Monitor,UHD IPS monitor with USB-C input,Computers,Global Components,329.00,220.00,42,10
+SKU-1004,USB-C Hub,7-in-1 USB-C hub with HDMI and card reader,Peripherals,Nexus Supply Co,39.50,22.00,0,15
+SKU-1005,Cat6 Ethernet Cable 3m,Snagless Cat6 patch cable,Networking,Brightline Distributors,8.99,4.50,300,50
+SKU-1006,1TB NVMe SSD,PCIe Gen4 NVMe solid state drive,Storage,Global Components,109.99,72.00,64,20
+SKU-1007,2TB External HDD,USB 3.0 portable hard drive,Storage,Anchor Logistics,89.99,60.00,12,15
+SKU-1008,Wi-Fi 6 Router,Dual-band Wi-Fi 6 router with 4 antennas,Networking,Nexus Supply Co,149.99,95.00,27,10
+SKU-1009,65W Laptop Charger,GaN USB-C laptop charger,Power & Cables,Volt & Bolt Trading,45.00,28.00,95,30
+SKU-1010,Surge Protector 6-Outlet,6-outlet surge protector with USB ports,Power & Cables,Volt & Bolt Trading,29.99,17.50,8,20
+SKU-1011,Ergonomic Office Chair,Mesh-back chair with lumbar support,Furniture,Anchor Logistics,249.00,160.00,14,8
+SKU-1012,Standing Desk,Height-adjustable electric standing desk,Furniture,Anchor Logistics,399.00,260.00,5,6
+SKU-1013,A4 Copy Paper 500 Sheets,80gsm multipurpose copy paper,Office Supplies,Brightline Distributors,6.49,3.80,500,100
+SKU-1014,Gel Pens 12-Pack,Quick-dry black gel pens,Office Supplies,Brightline Distributors,12.99,7.00,0,40
+SKU-1015,Bluetooth Headset,Over-ear wireless headset with microphone,Electronics,TechSource Ltd,59.99,35.00,33,15
+SKU-1016,Webcam 1080p,Full HD webcam with dual microphones,Electronics,Global Components,69.99,40.00,22,12
+SKU-1017,Docking Station,USB-C docking station with dual display,Computers,Nexus Supply Co,189.00,120.00,11,10
+SKU-1018,Ethernet Switch 8-Port,Unmanaged gigabit switch,Networking,Brightline Distributors,54.99,32.00,19,10
+SKU-1019,RAM 16GB DDR4,16GB DDR4 desktop memory module,Computers,Global Components,64.99,42.00,46,20
+SKU-1020,Power Bank 20000mAh,Portable power bank with fast charging,Power & Cables,Volt & Bolt Trading,49.99,30.00,7,25
