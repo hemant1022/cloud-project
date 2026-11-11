@@ -39,11 +39,20 @@ _CONFIGURED = False
 
 
 def project_root() -> Path:
-    """Return the repository root (override with the PROJECT_ROOT env var)."""
+    """Return the repository root (override with the PROJECT_ROOT env var).
+
+    Works both in the repository layout (repo/app/backend/app/logging_config.py)
+    and inside the container (app/app/logging_config.py).
+    """
     override = os.getenv("PROJECT_ROOT")
     if override:
         return Path(override).resolve()
-    return Path(__file__).resolve().parents[3]
+    parents = Path(__file__).resolve().parents
+    if len(parents) > 3:
+        return parents[3]
+    if len(parents) > 1:
+        return parents[1]
+    return parents[0]
 
 
 def _build_file_handler(path: Path, level: int) -> RotatingFileHandler:

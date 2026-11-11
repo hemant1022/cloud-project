@@ -2,17 +2,23 @@
 
 | # | Decision | Alternatives | Rationale |
 |---|----------|--------------|-----------|
-| 1 | FastAPI backend | Node/Express | Repo already Python-centric; small, typed, async |
-| 2 | React + Vite frontend | Next.js | Simpler static build, tiny nginx image |
-| 3 | PostgreSQL in-cluster | MongoDB, RDS | Matches classic 3-tier; avoids managed DB cost |
+| 1 | FastAPI backend | Node/Express | Repo is Python-centric; typed, async, auto docs |
+| 2 | React + Vite frontend | Next.js | Simple static build, tiny nginx image |
+| 3 | PostgreSQL in-cluster | MongoDB, RDS | Classic 3-tier; avoids managed DB cost |
 | 4 | Kustomize manifests | Helm charts | Easy CI image-tag bump, minimal templating |
-| 5 | Monorepo with `k8s/` subfolder | Separate manifest repo | Simpler to start; can split later (ArgoCD path unchanged in spirit) |
+| 5 | Monorepo with `k8s/` subfolder | Separate manifest repo | Simpler to start; can split later |
 | 6 | GitHub OIDC to AWS | Static access keys | No long-lived secrets in repo |
-| 7 | Per-stack log folders | Single log file | No collisions between docker/terraform/ci/argocd/monitoring runs |
+| 7 | Per-stack log folders + combined log | Single log file | No collisions; combined view for tracing |
 | 8 | Terraform modules wrap community modules | Fully hand-rolled | Faster, battle-tested VPC/EKS wiring |
+| 9 | JWT (HS256) with roles admin/manager/viewer | Session cookies, OAuth | Simple, stateless, supports role gating |
+| 10 | Seed from CC BY 4.0 grocery dataset | Synthetic only | Realistic categories/suppliers/prices with attribution |
+| 11 | Unknown CSV catalog values → reject + approval request | Auto-create silently | Admin keeps control of catalog quality |
+| 12 | Admin-only auto-create on import (`create_missing`) | Approval for admins too | The admin is already the authorizing party |
+| 13 | USD currency | INR, EUR | Chosen for this deployment |
 
 ## Naming Conventions
 
-- Docker images: `<ecr>/<app>-<tier>:sha-<git-sha>` (e.g. `cloud-project-backend:sha-abc123`)
-- Kubernetes namespaces: `app`, `argocd`, `monitoring`
+- Docker images: `<ecr>/inventory-<tier>:sha-<git-sha>`
+- Kubernetes namespaces: `inventory`, `argocd`, `monitoring`
 - Logs: `logs/<stack>/<phase>-<action>-<yyyyMMdd-HHmmss>.log`
+- Python app logs: `logs/<stack>/<stack>-<dd_mm_yyyy_hh_mm_ss>.log`, plus `logs/combined/combined.log`
