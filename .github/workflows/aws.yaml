@@ -14,7 +14,7 @@ concurrency:
 
 env:
   AWS_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-  ECR_REPO_PREFIX: ${{ secrets.ECR_REPO_PREFIX }}
+  ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY || 'tier3app' }}
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
@@ -28,10 +28,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate required secrets
+      - name: Validate required configuration
         run: |
           test -n "$AWS_REGION" || { echo "Missing AWS_DEFAULT_REGION secret"; exit 1; }
-          test -n "$ECR_REPO_PREFIX" || { echo "Missing ECR_REPO_PREFIX secret"; exit 1; }
+          test -n "$ECR_REPOSITORY" || { echo "ECR_REPOSITORY is empty"; exit 1; }
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -72,18 +72,6 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Ensure ECR repositories exist
-        run: |
-          for component in backend frontend db; do
-            repo="${ECR_REPO_PREFIX}-${component}"
-            if ! aws ecr describe-repositories --repository-names "$repo" >/dev/null 2>&1; then
-              aws ecr create-repository \
-                --repository-name "$repo" \
-                --image-scanning-configuration scanOnPush=true \
-                --encryption-configuration encryptionType=AES256 >/dev/null
-            fi
-          done
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -93,8 +81,8 @@ jobs:
           context: app/backend
           push: true
           tags: |
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO_PREFIX }}-backend:${{ env.IMAGE_TAG }}
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO_PREFIX }}-backend:latest
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:backend-${{ env.IMAGE_TAG }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:backend-latest
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
 
@@ -106,8 +94,8 @@ jobs:
           build-args: |
             VITE_API_BASE_URL=/api
           tags: |
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO_PREFIX }}-frontend:${{ env.IMAGE_TAG }}
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO_PREFIX }}-frontend:latest
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:frontend-${{ env.IMAGE_TAG }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:frontend-latest
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
 
@@ -117,8 +105,8 @@ jobs:
           context: app/db
           push: true
           tags: |
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO_PREFIX }}-db:${{ env.IMAGE_TAG }}
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO_PREFIX }}-db:latest
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:db-${{ env.IMAGE_TAG }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:db-latest
           cache-from: type=gha,scope=db
           cache-to: type=gha,mode=max,scope=db
 
@@ -144,9 +132,9 @@ jobs:
           REGISTRY: ${{ needs.continuous-integration.outputs.registry }}
         run: |
           kustomize edit set image \
-            "inventory-backend=${REGISTRY}/${ECR_REPO_PREFIX}-backend:${IMAGE_TAG}" \
-            "inventory-frontend=${REGISTRY}/${ECR_REPO_PREFIX}-frontend:${IMAGE_TAG}" \
-            "inventory-db=${REGISTRY}/${ECR_REPO_PREFIX}-db:${IMAGE_TAG}"
+            "inventory-backend=${REGISTRY}/${ECR_REPOSITORY}:backend-${IMAGE_TAG}" \
+            "inventory-frontend=${REGISTRY}/${ECR_REPOSITORY}:frontend-${IMAGE_TAG}" \
+            "inventory-db=${REGISTRY}/${ECR_REPOSITORY}:db-${IMAGE_TAG}"
           kustomize build . > /dev/null
 
       - name: Commit and push GitOps tag bump

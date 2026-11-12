@@ -58,9 +58,11 @@ Folders: `.github/workflows`, `logs/ci`
 - [x] Push backend, frontend, and database images to ECR
 - [x] Bump image tags in `k8s/overlays/dev/kustomization.yaml`
 
-Secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`,
-`ECR_REPO_PREFIX`. Acceptance: workflow green; three images in ECR; bot commit updates
-the overlay tags and ArgoCD syncs them.
+Secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`. All images
+are pushed to the single `tier3app` repo with component tags
+(`backend-<sha>`, `frontend-<sha>`, `db-<sha>`); optionally override the repo with the
+`ECR_REPOSITORY` variable. Acceptance: workflow green; three images in ECR; bot commit
+updates the overlay tags and ArgoCD syncs them.
 
 ## Phase 5 — GitOps Deployment (ArgoCD)
 

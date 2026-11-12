@@ -145,9 +145,10 @@ kubectl get nodes
 
 1. Backend pytest and frontend production build.
 2. Login to ECR with repository secrets.
-3. Create `<prefix>-backend`, `<prefix>-frontend`, and `<prefix>-db` repos if missing.
-4. Build and push all three images tagged with the full commit SHA and `latest`.
-5. Bump the image tags in `k8s/overlays/dev/kustomization.yaml` and push the commit
+3. Build and push three images into the single `tier3app` repo, tagged
+   `backend-<sha>`, `frontend-<sha>`, `db-<sha>` (plus `backend-latest`,
+   `frontend-latest`, `db-latest`).
+4. Bump the image tags in `k8s/overlays/dev/kustomization.yaml` and push the commit
    (ArgoCD then syncs it).
 
 Repository secrets (Settings → Secrets and variables → Actions):
@@ -157,12 +158,15 @@ Repository secrets (Settings → Secrets and variables → Actions):
 | `AWS_ACCESS_KEY_ID` | IAM access key |
 | `AWS_SECRET_ACCESS_KEY` | IAM secret key |
 | `AWS_DEFAULT_REGION` | e.g. `us-east-1` |
-| `ECR_REPO_PREFIX` | e.g. `inventory` → `inventory-backend`, `inventory-frontend`, `inventory-db` |
+
+The ECR repository name defaults to `tier3app`. Override it with a repository
+**variable** named `ECR_REPOSITORY` (Settings → Secrets and variables → Actions →
+Variables) if it ever changes.
 
 The IAM principal needs `ecr:GetAuthorizationToken`, `ecr:BatchCheckLayerAvailability`,
 `ecr:InitiateLayerUpload`, `ecr:UploadLayerPart`, `ecr:CompleteLayerUpload`,
-`ecr:PutImage`, `ecr:BatchGetImage`, plus `ecr:DescribeRepositories`/`ecr:CreateRepository`
-for the one-time repo creation. Prefer an OIDC role instead of static keys when possible.
+`ecr:PutImage`, and `ecr:BatchGetImage` for the `tier3app` repo. Prefer an OIDC role
+instead of static keys when possible.
 
 Run the same checks locally before pushing:
 
