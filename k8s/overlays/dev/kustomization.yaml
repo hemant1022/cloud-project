@@ -4,21 +4,21 @@ kind: Kustomization
 namespace: inventory
 
 resources:
-  - ../../base
+- ../../base
 
 images:
-  - name: inventory-backend
-    newName: ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/ECR_REPOSITORY
-    newTag: backend-latest
-  - name: inventory-frontend
-    newName: ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/ECR_REPOSITORY
-    newTag: frontend-latest
-  - name: inventory-db
-    newName: ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/ECR_REPOSITORY
-    newTag: db-latest
+- name: inventory-backend
+  newName: /tier3app
+  newTag: backend-bb9cbe310c68a4156e06bdc565682c4935db7ab6
+- name: inventory-db
+  newName: /tier3app
+  newTag: db-bb9cbe310c68a4156e06bdc565682c4935db7ab6
+- name: inventory-frontend
+  newName: /tier3app
+  newTag: frontend-bb9cbe310c68a4156e06bdc565682c4935db7ab6
 
 replicas:
-  - name: backend
-    count: 2
-  - name: frontend
-    count: 2
+- count: 2
+  name: backend
+- count: 2
+  name: frontend
