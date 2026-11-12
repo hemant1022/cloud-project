@@ -276,3 +276,7 @@ Thumbs.db
 .vscode/
 .env/
 
+# The Python template ignores lib/; keep the frontend source directory.
+!app/frontend/src/lib/
+!app/frontend/src/lib/**
+
