@@ -18,11 +18,9 @@ env:
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
-  continuous-integration:
+  continuous_integration:
     name: Continuous-Integration
     runs-on: ubuntu-latest
-    outputs:
-      registry: ${{ steps.login-ecr.outputs.registry }}
 
     steps:
       - name: Checkout
@@ -69,7 +67,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
-        id: login-ecr
+        id: login_ecr
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Set up Docker Buildx
@@ -81,8 +79,8 @@ jobs:
           context: app/backend
           push: true
           tags: |
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:backend-${{ env.IMAGE_TAG }}
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:backend-latest
+            ${{ steps.login_ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:backend-${{ env.IMAGE_TAG }}
+            ${{ steps.login_ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:backend-latest
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
 
@@ -94,8 +92,8 @@ jobs:
           build-args: |
             VITE_API_BASE_URL=/api
           tags: |
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:frontend-${{ env.IMAGE_TAG }}
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:frontend-latest
+            ${{ steps.login_ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:frontend-${{ env.IMAGE_TAG }}
+            ${{ steps.login_ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:frontend-latest
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
 
@@ -105,14 +103,14 @@ jobs:
           context: app/db
           push: true
           tags: |
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:db-${{ env.IMAGE_TAG }}
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:db-latest
+            ${{ steps.login_ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:db-${{ env.IMAGE_TAG }}
+            ${{ steps.login_ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:db-latest
           cache-from: type=gha,scope=db
           cache-to: type=gha,mode=max,scope=db
 
-  continuous-deployment:
+  continuous_deployment:
     name: Continuous-Deployment
-    needs: continuous-integration
+    needs: continuous_integration
     runs-on: ubuntu-latest
 
     steps:
@@ -120,6 +118,17 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login_ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Set up Kustomize
         uses: imranismail/setup-kustomize@v2
@@ -129,8 +138,9 @@ jobs:
       - name: Update dev image tags
         working-directory: k8s/overlays/dev
         env:
-          REGISTRY: ${{ needs.continuous-integration.outputs.registry }}
+          REGISTRY: ${{ steps.login_ecr.outputs.registry }}
         run: |
+          test -n "$REGISTRY" || { echo "Empty ECR registry"; exit 1; }
           kustomize edit set image \
             "inventory-backend=${REGISTRY}/${ECR_REPOSITORY}:backend-${IMAGE_TAG}" \
             "inventory-frontend=${REGISTRY}/${ECR_REPOSITORY}:frontend-${IMAGE_TAG}" \

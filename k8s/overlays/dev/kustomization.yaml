@@ -8,14 +8,14 @@ resources:
 
 images:
 - name: inventory-backend
-  newName: /tier3app
-  newTag: backend-bb9cbe310c68a4156e06bdc565682c4935db7ab6
+  newName: ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/ECR_REPOSITORY
+  newTag: backend-latest
 - name: inventory-db
-  newName: /tier3app
-  newTag: db-bb9cbe310c68a4156e06bdc565682c4935db7ab6
+  newName: ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/ECR_REPOSITORY
+  newTag: db-latest
 - name: inventory-frontend
-  newName: /tier3app
-  newTag: frontend-bb9cbe310c68a4156e06bdc565682c4935db7ab6
+  newName: ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/ECR_REPOSITORY
+  newTag: frontend-latest
 
 replicas:
 - count: 2
