@@ -8,13 +8,13 @@ resources:
 
 images:
   - name: inventory-backend
-    newName: ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/tier3app
+    newName: ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/ECR_REPOSITORY
     newTag: backend-latest
   - name: inventory-frontend
-    newName: ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/tier3app
+    newName: ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/ECR_REPOSITORY
     newTag: frontend-latest
   - name: inventory-db
-    newName: ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/tier3app
+    newName: ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/ECR_REPOSITORY
     newTag: db-latest
 
 replicas:

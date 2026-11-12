@@ -14,7 +14,7 @@ concurrency:
 
 env:
   AWS_REGION: ${{ secrets.AWS_DEFAULT_REGION || vars.AWS_DEFAULT_REGION }}
-  ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY || secrets.ECR_REPOSITORY || 'tier3app' }}
+  ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY || secrets.ECR_REPOSITORY }}
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
@@ -31,7 +31,7 @@ jobs:
       - name: Validate required configuration
         run: |
           test -n "$AWS_REGION" || { echo "Missing AWS_DEFAULT_REGION secret"; exit 1; }
-          test -n "$ECR_REPOSITORY" || { echo "ECR_REPOSITORY is empty"; exit 1; }
+          test -n "$ECR_REPOSITORY" || { echo "Missing ECR_REPOSITORY (repository variable or secret)"; exit 1; }
 
       - name: Set up Python
         uses: actions/setup-python@v5
