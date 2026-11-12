@@ -151,17 +151,23 @@ kubectl get nodes
 4. Bump the image tags in `k8s/overlays/dev/kustomization.yaml` and push the commit
    (ArgoCD then syncs it).
 
-Repository secrets (Settings → Secrets and variables → Actions):
+> **Important:** `.env` files and Windows environment variables are local only.
+> GitHub Actions runs on GitHub's runners and does not read them. Add the values in
+> **Settings → Secrets and variables → Actions** in the GitHub repository.
+
+Repository secrets:
 
 | Secret | Purpose |
 | ------ | ------- |
-| `AWS_ACCESS_KEY_ID` | IAM access key |
-| `AWS_SECRET_ACCESS_KEY` | IAM secret key |
-| `AWS_DEFAULT_REGION` | e.g. `us-east-1` |
+| `AWS_ACCESS_KEY_ID` | IAM access key (secret) |
+| `AWS_SECRET_ACCESS_KEY` | IAM secret key (secret) |
+| `AWS_DEFAULT_REGION` | e.g. `us-east-1` (secret or variable) |
 
-The ECR repository name defaults to `tier3app`. Override it with a repository
-**variable** named `ECR_REPOSITORY` (Settings → Secrets and variables → Actions →
-Variables) if it ever changes.
+Optional repository variable (or secret): `ECR_REPOSITORY`.
+
+The ECR repository name defaults to `tier3app`. The workflow accepts
+`ECR_REPOSITORY` as either a repository variable or a secret; if neither is set, it
+uses `tier3app`. The region likewise accepts a secret or variable.
 
 The IAM principal needs `ecr:GetAuthorizationToken`, `ecr:BatchCheckLayerAvailability`,
 `ecr:InitiateLayerUpload`, `ecr:UploadLayerPart`, `ecr:CompleteLayerUpload`,

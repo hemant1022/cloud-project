@@ -13,8 +13,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  AWS_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-  ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY || 'tier3app' }}
+  AWS_REGION: ${{ secrets.AWS_DEFAULT_REGION || vars.AWS_DEFAULT_REGION }}
+  ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY || secrets.ECR_REPOSITORY || 'tier3app' }}
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
