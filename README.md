@@ -24,8 +24,8 @@ CSV, watch low-stock alerts, and see total inventory value in real time.
 | Database   | PostgreSQL 16 |
 | Local      | Docker Compose |
 | Infra      | Terraform (VPC, EKS, IAM/OIDC) — scaffolded |
-| CI/CD      | GitHub Actions → Amazon ECR — scaffolded |
-| GitOps     | ArgoCD + Kustomize — scaffolded |
+| CI/CD      | GitHub Actions → Amazon ECR — workflow added |
+| GitOps     | ArgoCD + Kustomize — manifests added |
 | Monitoring | kube-prometheus-stack — scaffolded |
 
 ## Quickstart (Docker Compose)
@@ -125,7 +125,7 @@ CSV import summaries, and uncaught exceptions. See `logs/README.md`.
 
 1. Application + database + Docker (done)
 2. JWT auth, approvals, CSV import (done)
-3. Terraform: VPC, EKS, IAM/OIDC
-4. GitHub Actions: tests, ECR push, manifest bump
-5. ArgoCD GitOps deployment
+3. Terraform: VPC, EKS, IAM/OIDC (pending Terraform install)
+4. GitHub Actions: tests, ECR push, GitOps tag bump (workflow added; add AWS secrets)
+5. ArgoCD deployment (manifests added; install on cluster pending)
 6. Prometheus + Grafana monitoring

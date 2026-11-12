@@ -47,28 +47,31 @@ Folders: `infra/bootstrap`, `infra/modules/{vpc,eks,iam-oidc}`, `infra/envs/dev`
 
 Acceptance: `terraform apply` succeeds; `kubectl get nodes` shows Ready nodes.
 
-## Phase 4 — CI Pipeline (GitHub Actions)
+## Phase 4 — CI Pipeline (GitHub Actions → ECR) — workflow added
 
 Folders: `.github/workflows`, `logs/ci`
 
-- [ ] Trigger on pull_request and push to `main`
-- [ ] Backend pytest + frontend build
-- [ ] Authenticate to ECR (prefer GitHub OIDC role over static keys)
-- [ ] Build images tagged `sha-${{ github.sha }}`
-- [ ] Push backend and frontend images to ECR
-- [ ] Bump image tags in `k8s/overlays/dev/kustomization.yaml`
+- [ ] Trigger on pull_request and push to `main` (currently push to `main` + manual)
+- [x] Backend pytest + frontend build
+- [x] Authenticate to ECR with repository secrets (OIDC role recommended later)
+- [x] Build images tagged `sha-${{ github.sha }}` and `latest`
+- [x] Push backend, frontend, and database images to ECR
+- [x] Bump image tags in `k8s/overlays/dev/kustomization.yaml`
 
-Acceptance: workflow green; images in ECR; bot commit updates manifest tags.
+Secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`,
+`ECR_REPO_PREFIX`. Acceptance: workflow green; three images in ECR; bot commit updates
+the overlay tags and ArgoCD syncs them.
 
 ## Phase 5 — GitOps Deployment (ArgoCD)
 
 Folders: `k8s/base`, `k8s/overlays/{dev,prod}`, `k8s/argocd`, `logs/argocd`
 
-- [ ] Kustomize base: deployments, services, configmap, secret template, ingress, PVC
-- [ ] Postgres StatefulSet + PVC (or external managed database)
-- [ ] Overlays for dev/prod (image tags, replicas, resources)
-- [ ] Install ArgoCD and create an app-of-apps Application
-- [ ] Auto-sync, self-heal, prune
+- [x] Kustomize base: deployments, services, configmap, secret template, ingress, PVC
+- [x] Postgres StatefulSet + PVC using an ECR-hosted DB image with seed data
+- [x] Overlays for dev/prod (image tags, replicas)
+- [x] App-of-apps and `inventory-dev` Application manifests
+- [ ] Install ArgoCD and bootstrap the app-of-apps on the cluster
+- [ ] Auto-sync, self-heal, prune verified
 
 Acceptance: ArgoCD reports `Synced/Healthy`; app reachable via ingress/LoadBalancer.
 

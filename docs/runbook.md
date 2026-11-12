@@ -139,18 +139,69 @@ aws eks update-kubeconfig --name cloud-project-dev --region <region>
 kubectl get nodes
 ```
 
-## Phase 4 — CI
+## Phase 4 — CI (GitHub Actions → ECR)
 
-Push to `main` or open a PR. `.github/workflows/ci.yml` runs backend tests, builds the
-frontend, pushes `sha-<sha>` images to ECR, and bumps the Kustomize image tags.
+`.github/workflows/aws.yaml` runs on every push to `main` (and manually):
+
+1. Backend pytest and frontend production build.
+2. Login to ECR with repository secrets.
+3. Create `<prefix>-backend`, `<prefix>-frontend`, and `<prefix>-db` repos if missing.
+4. Build and push all three images tagged with the full commit SHA and `latest`.
+5. Bump the image tags in `k8s/overlays/dev/kustomization.yaml` and push the commit
+   (ArgoCD then syncs it).
+
+Repository secrets (Settings → Secrets and variables → Actions):
+
+| Secret | Purpose |
+| ------ | ------- |
+| `AWS_ACCESS_KEY_ID` | IAM access key |
+| `AWS_SECRET_ACCESS_KEY` | IAM secret key |
+| `AWS_DEFAULT_REGION` | e.g. `us-east-1` |
+| `ECR_REPO_PREFIX` | e.g. `inventory` → `inventory-backend`, `inventory-frontend`, `inventory-db` |
+
+The IAM principal needs `ecr:GetAuthorizationToken`, `ecr:BatchCheckLayerAvailability`,
+`ecr:InitiateLayerUpload`, `ecr:UploadLayerPart`, `ecr:CompleteLayerUpload`,
+`ecr:PutImage`, `ecr:BatchGetImage`, plus `ecr:DescribeRepositories`/`ecr:CreateRepository`
+for the one-time repo creation. Prefer an OIDC role instead of static keys when possible.
+
+Run the same checks locally before pushing:
+
+```powershell
+.\scripts\run-logged.ps1 -Stack ci -Phase 04 -Action tests `
+  -Command "app\backend\.venv\Scripts\python -m pytest app\backend\tests -q"
+cd app\frontend; npm run build
+kubectl kustomize k8s/overlays/dev > $null
+```
 
 ## Phase 5 — ArgoCD
+
+Create the application secret once the cluster and namespace exist:
+
+```powershell
+kubectl create namespace inventory --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n inventory create secret generic inventory-secrets `
+  --from-literal=POSTGRES_PASSWORD='<password>' `
+  --from-literal=DATABASE_URL='postgresql+psycopg2://inventory:<password>@db:5432/inventory' `
+  --from-literal=JWT_SECRET='<long-random-string>' `
+  --from-literal=ADMIN_EMAIL='admin@example.com' `
+  --from-literal=ADMIN_PASSWORD='<strong-password>'
+```
+
+Install ArgoCD and register the app-of-apps:
 
 ```powershell
 .\scripts\run-logged.ps1 -Stack argocd -Phase 05 -Action install `
   -Command "kubectl create namespace argocd; kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml"
 .\scripts\run-logged.ps1 -Stack argocd -Phase 05 -Action app `
-  -Command "kubectl apply -f k8s/argocd/apps/app-of-apps.yaml"
+  -Command "kubectl apply -f k8s/argocd/app-of-apps.yaml"
+```
+
+`inventory-apps` syncs `k8s/argocd/apps/`, which contains `inventory-dev` pointing at
+`k8s/overlays/dev`. Image tags there are updated by CI; do not edit them by hand.
+Verify the placeholders in the overlay have been replaced with real ECR URIs:
+
+```powershell
+kubectl kustomize k8s/overlays/dev | Select-String "image:"
 ```
 
 UI: `kubectl -n argocd port-forward svc/argocd-server 8080:443`

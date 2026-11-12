@@ -1,0 +1,162 @@
+name: Build, Push to ECR, and Update GitOps
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ecr-gitops-main
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+  ECR_REPO_PREFIX: ${{ secrets.ECR_REPO_PREFIX }}
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  continuous-integration:
+    name: Continuous-Integration
+    runs-on: ubuntu-latest
+    outputs:
+      registry: ${{ steps.login-ecr.outputs.registry }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        run: |
+          test -n "$AWS_REGION" || { echo "Missing AWS_DEFAULT_REGION secret"; exit 1; }
+          test -n "$ECR_REPO_PREFIX" || { echo "Missing ECR_REPO_PREFIX secret"; exit 1; }
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: app/backend/requirements-dev.txt
+
+      - name: Install backend dependencies
+        run: pip install -r app/backend/requirements-dev.txt
+
+      - name: Run backend tests
+        run: python -m pytest app/backend/tests -q
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: app/frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: app/frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: app/frontend
+        run: npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Ensure ECR repositories exist
+        run: |
+          for component in backend frontend db; do
+            repo="${ECR_REPO_PREFIX}-${component}"
+            if ! aws ecr describe-repositories --repository-names "$repo" >/dev/null 2>&1; then
+              aws ecr create-repository \
+                --repository-name "$repo" \
+                --image-scanning-configuration scanOnPush=true \
+                --encryption-configuration encryptionType=AES256 >/dev/null
+            fi
+          done
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: app/backend
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO_PREFIX }}-backend:${{ env.IMAGE_TAG }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO_PREFIX }}-backend:latest
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: app/frontend
+          push: true
+          build-args: |
+            VITE_API_BASE_URL=/api
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO_PREFIX }}-frontend:${{ env.IMAGE_TAG }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO_PREFIX }}-frontend:latest
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+      - name: Build and push database image
+        uses: docker/build-push-action@v6
+        with:
+          context: app/db
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO_PREFIX }}-db:${{ env.IMAGE_TAG }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO_PREFIX }}-db:latest
+          cache-from: type=gha,scope=db
+          cache-to: type=gha,mode=max,scope=db
+
+  continuous-deployment:
+    name: Continuous-Deployment
+    needs: continuous-integration
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Kustomize
+        uses: imranismail/setup-kustomize@v2
+        with:
+          kustomize-version: "5.4.3"
+
+      - name: Update dev image tags
+        working-directory: k8s/overlays/dev
+        env:
+          REGISTRY: ${{ needs.continuous-integration.outputs.registry }}
+        run: |
+          kustomize edit set image \
+            "inventory-backend=${REGISTRY}/${ECR_REPO_PREFIX}-backend:${IMAGE_TAG}" \
+            "inventory-frontend=${REGISTRY}/${ECR_REPO_PREFIX}-frontend:${IMAGE_TAG}" \
+            "inventory-db=${REGISTRY}/${ECR_REPO_PREFIX}-db:${IMAGE_TAG}"
+          kustomize build . > /dev/null
+
+      - name: Commit and push GitOps tag bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add k8s/overlays/dev/kustomization.yaml
+          if git diff --cached --quiet; then
+            echo "No image tag changes to commit"
+            exit 0
+          fi
+          git commit -m "chore(gitops): deploy ${GITHUB_SHA::7} to dev"
+          git push
