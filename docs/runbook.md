@@ -14,7 +14,7 @@ All commands are wrapped by `scripts/run-logged.ps1` to capture output under `lo
 | kubectl   | `kubectl version --client`| `winget install Kubernetes.kubectl`   |
 | Helm      | `helm version`            | `winget install Helm.Helm`            |
 
-Terraform is currently **missing** on this machine — install it before Phase 3.
+Terraform 1.17.1 is installed via winget. If `terraform` is not found, open a new shell or use the full path under `%LOCALAPPDATA%\Microsoft\WinGet\Packages\Hashicorp.Terraform_*`.
 
 ## Phase 1 — Run locally with Docker Compose
 
@@ -138,6 +138,18 @@ Then:
 aws eks update-kubeconfig --name cloud-project-dev --region <region>
 kubectl get nodes
 ```
+
+Notes:
+
+- This AWS account is on the Free plan, so node groups must use a free-tier-eligible
+  instance type. `t3.small` is used; list allowed types with
+  `aws ec2 describe-instance-types --filters Name=free-tier-eligible,Values=true`.
+- The EKS module grants the Terraform identity cluster-admin via an access entry
+  (`enable_cluster_creator_admin_permissions = true`). Other IAM principals need their
+  own access entry.
+- If the Terraform CLI is killed mid-apply, clear a stale state lock with
+  `terraform -chdir=infra/envs/dev force-unlock <lock-id>` after confirming no
+  `terraform` process is running.
 
 ## Phase 4 — CI (GitHub Actions → ECR)
 

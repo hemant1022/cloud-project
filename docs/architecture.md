@@ -142,5 +142,5 @@ flowchart TB
 
 | Env  | Terraform path    | Kustomize overlay  | Notes |
 | ---- | ----------------- | ------------------ | ----- |
-| dev  | `infra/envs/dev`  | `k8s/overlays/dev` | t3.medium x2, single NAT |
+| dev  | `infra/envs/dev`  | `k8s/overlays/dev` | t3.small x2, single NAT |
 | prod | `infra/envs/prod` | `k8s/overlays/prod`| larger nodes, HA, more AZs |

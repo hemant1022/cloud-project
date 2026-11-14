@@ -41,7 +41,7 @@ Folders: `infra/bootstrap`, `infra/modules/{vpc,eks,iam-oidc}`, `infra/envs/dev`
 
 - [ ] Bootstrap: S3 bucket (versioned, encrypted) + DynamoDB state lock
 - [ ] VPC module: 2 public / 2 private subnets, NAT, IGW, route tables, EKS tags
-- [ ] EKS module: control plane + managed node group (t3.medium x2)
+- [ ] EKS module: control plane + managed node group (t3.small x2)
 - [ ] IAM/OIDC module: IRSA roles for EBS CSI and AWS Load Balancer Controller
 - [ ] Dev environment wiring modules with remote backend
 
