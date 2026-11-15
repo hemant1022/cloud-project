@@ -147,6 +147,9 @@ Notes:
 - The EKS module grants the Terraform identity cluster-admin via an access entry
   (`enable_cluster_creator_admin_permissions = true`). Other IAM principals need their
   own access entry.
+- The EKS module ignores `desired_size` drift so a cluster autoscaler can own it.
+  Resize an existing group with
+  `aws eks update-nodegroup-config --cluster-name cloud-project-dev --nodegroup-name <name> --scaling-config minSize=2,maxSize=4,desiredSize=3`.
 - If the Terraform CLI is killed mid-apply, clear a stale state lock with
   `terraform -chdir=infra/envs/dev force-unlock <lock-id>` after confirming no
   `terraform` process is running.
@@ -213,7 +216,7 @@ Install ArgoCD and register the app-of-apps:
 
 ```powershell
 .\scripts\run-logged.ps1 -Stack argocd -Phase 05 -Action install `
-  -Command "kubectl create namespace argocd; kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml"
+  -Command "kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -; kubectl apply --server-side -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml"
 .\scripts\run-logged.ps1 -Stack argocd -Phase 05 -Action app `
   -Command "kubectl apply -f k8s/argocd/app-of-apps.yaml"
 ```
