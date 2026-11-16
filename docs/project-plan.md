@@ -83,8 +83,10 @@ Acceptance: ArgoCD reports `Synced/Healthy`; app reachable via ingress/LoadBalan
 Folders: `monitoring`, `logs/monitoring`
 
 - [x] kube-prometheus-stack values (retention, resources, gp3 storage)
-- [ ] Alert rules: pod crashloop, high CPU/memory, PVC pressure, low-stock metric
+- [x] Alert rules: pod crashloop, high CPU/memory, PVC pressure, low-stock metric
 - [x] Grafana dashboard and datasource provisioning
-- [ ] Validate a test alert end to end
+- [x] Validate a test alert end to end
 
 Acceptance: Grafana reachable; dashboards show cluster and app metrics; alerts fire.
+Validated with seeded inventory data: `InventoryLowStock` and `InventoryOutOfStock`
+reached `firing` and were received by Alertmanager.

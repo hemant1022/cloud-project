@@ -288,6 +288,19 @@ kubectl -n monitoring get secret grafana-admin -o jsonpath="{.data.admin-passwor
 The backend exposes `/metrics` with `inventory_low_stock_products` and
 `inventory_out_of_stock_products` gauges plus standard FastAPI HTTP metrics.
 
+Verify the scrape target, rules, and alert path:
+
+```powershell
+kubectl -n inventory get servicemonitor inventory-backend
+kubectl -n monitoring get prometheusrule inventory-alerts
+kubectl -n monitoring get configmap inventory-grafana-dashboard
+```
+
+Query Prometheus for `up{namespace="inventory",service="backend"}` and
+`inventory_low_stock_products`; the seeded data should drive `InventoryLowStock`
+and `InventoryOutOfStock` to `firing` after five minutes. Alertmanager receives
+them even though the dev receiver is intentionally `null`.
+
 ## Teardown (avoid AWS charges)
 
 ```powershell

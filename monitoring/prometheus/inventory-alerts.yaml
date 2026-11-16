@@ -10,7 +10,7 @@ spec:
     - name: inventory.rules
       rules:
         - alert: InventoryLowStock
-          expr: inventory_low_stock_products > 0
+          expr: max(inventory_low_stock_products) > 0
           for: 5m
           labels:
             severity: warning
@@ -19,7 +19,7 @@ spec:
             description: "{{ $value }} product(s) are at or below their reorder level."
 
         - alert: InventoryOutOfStock
-          expr: inventory_out_of_stock_products > 0
+          expr: max(inventory_out_of_stock_products) > 0
           for: 5m
           labels:
             severity: critical
@@ -37,7 +37,7 @@ spec:
             description: "5xx rate is {{ $value | humanize }} requests/second over the last 5 minutes."
 
         - alert: InventoryBackendTargetDown
-          expr: up{namespace="inventory",service="backend"} == 0
+          expr: min(up{namespace="inventory",service="backend"}) == 0
           for: 5m
           labels:
             severity: critical
