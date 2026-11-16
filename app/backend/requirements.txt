@@ -7,3 +7,4 @@ pydantic-settings==2.7.0
 python-multipart==0.0.20
 PyJWT==2.10.1
 pwdlib[argon2]==0.2.1
+prometheus-fastapi-instrumentator==7.1.0

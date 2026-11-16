@@ -42,29 +42,31 @@ def _breakdown(db: Session, join_model, fk_column, empty_label: str) -> list[Bre
     ]
 
 
+def get_stock_counts(db: Session) -> tuple[int, int]:
+    low_stock = db.scalar(
+        select(func.count(Product.id)).where(
+            Product.stock_quantity <= Product.reorder_level,
+            Product.stock_quantity > 0,
+        )
+    )
+    out_of_stock = db.scalar(
+        select(func.count(Product.id)).where(Product.stock_quantity == 0)
+    )
+    return int(low_stock or 0), int(out_of_stock or 0)
+
+
 def get_summary(db: Session) -> StatsSummary:
     try:
         total_products = db.scalar(select(func.count(Product.id))) or 0
         total_units = db.scalar(select(func.coalesce(func.sum(Product.stock_quantity), 0))) or 0
         total_value = db.scalar(select(func.coalesce(func.sum(VALUE_EXPR), 0))) or 0
-        low_stock = (
-            db.scalar(
-                select(func.count(Product.id)).where(
-                    Product.stock_quantity <= Product.reorder_level,
-                    Product.stock_quantity > 0,
-                )
-            )
-            or 0
-        )
-        out_of_stock = (
-            db.scalar(select(func.count(Product.id)).where(Product.stock_quantity == 0)) or 0
-        )
+        low_stock, out_of_stock = get_stock_counts(db)
         summary = StatsSummary(
             total_products=int(total_products),
             total_units=int(total_units),
             total_inventory_value=round(float(total_value), 2),
-            low_stock_count=int(low_stock),
-            out_of_stock_count=int(out_of_stock),
+            low_stock_count=low_stock,
+            out_of_stock_count=out_of_stock,
             category_breakdown=_breakdown(db, Category, Product.category_id, "Uncategorized"),
             supplier_breakdown=_breakdown(db, Supplier, Product.supplier_id, "No supplier"),
         )

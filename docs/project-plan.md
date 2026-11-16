@@ -39,11 +39,11 @@ low-stock and out-of-stock rows; `down -v` then `up` loads them.
 
 Folders: `infra/bootstrap`, `infra/modules/{vpc,eks,iam-oidc}`, `infra/envs/dev`, `logs/terraform`
 
-- [ ] Bootstrap: S3 bucket (versioned, encrypted) + DynamoDB state lock
-- [ ] VPC module: 2 public / 2 private subnets, NAT, IGW, route tables, EKS tags
-- [ ] EKS module: control plane + managed node group (t3.small x3)
-- [ ] IAM/OIDC module: IRSA roles for EBS CSI and AWS Load Balancer Controller
-- [ ] Dev environment wiring modules with remote backend
+- [x] Bootstrap: S3 bucket (versioned, encrypted) + DynamoDB state lock
+- [x] VPC module: 2 public / 2 private subnets, NAT, IGW, route tables, EKS tags
+- [x] EKS module: control plane + managed node group (t3.small x4)
+- [x] IAM/OIDC module: IRSA roles for EBS CSI and AWS Load Balancer Controller
+- [x] Dev environment wiring modules with remote backend
 
 Acceptance: `terraform apply` succeeds; `kubectl get nodes` shows Ready nodes.
 
@@ -57,6 +57,7 @@ Folders: `.github/workflows`, `logs/ci`
 - [x] Build images tagged `sha-${{ github.sha }}` and `latest`
 - [x] Push backend, frontend, and database images to ECR
 - [x] Bump image tags in `k8s/overlays/dev/kustomization.yaml`
+- [ ] Replace static AWS keys with a GitHub OIDC role
 
 Secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`, and the
 required `ECR_REPOSITORY` variable (or secret). All images are pushed to that single
@@ -72,8 +73,8 @@ Folders: `k8s/base`, `k8s/overlays/{dev,prod}`, `k8s/argocd`, `logs/argocd`
 - [x] Postgres StatefulSet + PVC using an ECR-hosted DB image with seed data
 - [x] Overlays for dev/prod (image tags, replicas)
 - [x] App-of-apps and `inventory-dev` Application manifests
-- [ ] Install ArgoCD and bootstrap the app-of-apps on the cluster
-- [ ] Auto-sync, self-heal, prune verified
+- [x] Install ArgoCD and bootstrap the app-of-apps on the cluster
+- [x] Auto-sync, self-heal, prune verified
 
 Acceptance: ArgoCD reports `Synced/Healthy`; app reachable via ingress/LoadBalancer.
 
@@ -81,9 +82,9 @@ Acceptance: ArgoCD reports `Synced/Healthy`; app reachable via ingress/LoadBalan
 
 Folders: `monitoring`, `logs/monitoring`
 
-- [ ] kube-prometheus-stack values (retention, resources, ingress)
+- [x] kube-prometheus-stack values (retention, resources, gp3 storage)
 - [ ] Alert rules: pod crashloop, high CPU/memory, PVC pressure, low-stock metric
-- [ ] Grafana dashboard and datasource provisioning
+- [x] Grafana dashboard and datasource provisioning
 - [ ] Validate a test alert end to end
 
 Acceptance: Grafana reachable; dashboards show cluster and app metrics; alerts fire.

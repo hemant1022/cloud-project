@@ -5,15 +5,18 @@ from __future__ import annotations
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, HTTPException, Request, status
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+from prometheus_fastapi_instrumentator import Instrumentator
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from .config import settings
 from .database import Base, SessionLocal, engine, get_db
 from .logging_config import configure_logger, get_logger
+from .metrics import update_inventory_gauges
 from .routers import alerts, auth, catalog, catalog_requests, imports, products, stats
 from .services.bootstrap import ensure_admin
 
@@ -51,6 +54,8 @@ app = FastAPI(
     description="Products, stock, suppliers, categories, CSV import, and low-stock alerts.",
     lifespan=lifespan,
 )
+
+Instrumentator().instrument(app)
 
 app.add_middleware(
     CORSMiddleware,
@@ -113,6 +118,15 @@ def health(db: Session = Depends(get_db)) -> dict[str, str]:
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Database unavailable",
         ) from None
+
+
+@app.get("/metrics", include_in_schema=False)
+def metrics(db: Session = Depends(get_db)) -> Response:
+    try:
+        update_inventory_gauges(db)
+    except Exception:
+        logger.exception("Failed to refresh inventory metrics")
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 app.include_router(auth.router)

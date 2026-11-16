@@ -1,0 +1,82 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: inventory-alerts
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  groups:
+    - name: inventory.rules
+      rules:
+        - alert: InventoryLowStock
+          expr: inventory_low_stock_products > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Inventory has low-stock products
+            description: "{{ $value }} product(s) are at or below their reorder level."
+
+        - alert: InventoryOutOfStock
+          expr: inventory_out_of_stock_products > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Inventory has out-of-stock products
+            description: "{{ $value }} product(s) have zero stock."
+
+        - alert: InventoryBackendHigh5xxRate
+          expr: sum(rate(http_requests_total{namespace="inventory",status=~"5.."}[5m])) > 0.1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Inventory backend is returning 5xx responses
+            description: "5xx rate is {{ $value | humanize }} requests/second over the last 5 minutes."
+
+        - alert: InventoryBackendTargetDown
+          expr: up{namespace="inventory",service="backend"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Inventory backend metrics target is down
+            description: "Prometheus has been unable to scrape the inventory backend for 5 minutes."
+
+        - alert: InventoryPodCrashLooping
+          expr: increase(kube_pod_container_status_restarts_total{namespace="inventory"}[10m]) > 3
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Inventory pod is restarting repeatedly
+            description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} restarted more than 3 times in 10 minutes."
+
+        - alert: NodeHighCPU
+          expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Node CPU usage is high
+            description: "Node {{ $labels.instance }} CPU usage is {{ $value | printf \"%.0f\" }}%."
+
+        - alert: NodeHighMemory
+          expr: 100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 90
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Node memory usage is high
+            description: "Node {{ $labels.instance }} memory usage is {{ $value | printf \"%.0f\" }}%."
+
+        - alert: InventoryPVCFillingUp
+          expr: kubelet_volume_stats_available_bytes{namespace="inventory"} / kubelet_volume_stats_capacity_bytes{namespace="inventory"} < 0.15
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Inventory PVC is filling up
+            description: "PVC {{ $labels.persistentvolumeclaim }} has less than 15% free space."

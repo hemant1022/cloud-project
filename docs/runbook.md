@@ -235,14 +235,58 @@ Initial password: `kubectl -n argocd get secret argocd-initial-admin-secret -o j
 
 ## Phase 6 — Monitoring
 
+The dev node group runs 4 x `t3.small`. EKS allows 11 pods per `t3.small` node, and
+three nodes were full after ArgoCD, the app, and the monitoring DaemonSets were added.
+
+Create the namespace and Grafana admin secret, then pre-install the chart CRDs
+server-side. Helm's CRD apply can exceed its client timeout on this cluster:
+
 ```powershell
-.\scripts\run-logged.ps1 -Stack monitoring -Phase 06 -Action install `
-  -Command "helm repo add prometheus-community https://prometheus-community.github.io/helm-charts; helm repo update; helm upgrade --install prometheus prometheus-community/kube-prometheus-stack -n monitoring --create-namespace -f monitoring/prometheus/values.yaml"
-.\scripts\run-logged.ps1 -Stack monitoring -Phase 06 -Action port-forward `
-  -Command "kubectl -n monitoring port-forward svc/prometheus-grafana 3000:80"
+kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+$pw = -join ((48..57)+(65..90)+(97..122) | Get-Random -Count 24 | % {[char]$_})
+kubectl -n monitoring create secret generic grafana-admin `
+  --from-literal=admin-user=admin --from-literal=admin-password=$pw `
+  --dry-run=client -o yaml | kubectl apply -f -
+.\scripts\run-logged.ps1 -Stack monitoring -Phase 06 -Action crds `
+  -Command "helm show crds prometheus-community/kube-prometheus-stack --version 93.3.0 | kubectl apply --server-side --force-conflicts -f -"
 ```
 
-Grafana: http://localhost:3000 (default `admin` / `prom-operator` unless overridden).
+Install the release with `--skip-crds`:
+
+```powershell
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm upgrade --install monitoring prometheus-community/kube-prometheus-stack `
+  --namespace monitoring --version 93.3.0 `
+  --values monitoring/prometheus/values.yaml `
+  --skip-crds --wait --timeout 12m
+```
+
+Apply the backend ServiceMonitor, alert rules, and Grafana dashboard after the
+backend image with `/metrics` is deployed:
+
+```powershell
+kubectl apply -f monitoring/prometheus/servicemonitor.yaml
+kubectl apply -f monitoring/prometheus/inventory-alerts.yaml
+kubectl apply -k monitoring/grafana/dashboards
+```
+
+Access the UIs:
+
+```powershell
+kubectl -n monitoring port-forward svc/monitoring-grafana 3000:80
+kubectl -n monitoring port-forward svc/monitoring-kube-prometheus-prometheus 9090:9090
+```
+
+Grafana: http://localhost:3000, user `admin`. Read the password with:
+
+```powershell
+kubectl -n monitoring get secret grafana-admin -o jsonpath="{.data.admin-password}" |
+  %{[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($_))}
+```
+
+The backend exposes `/metrics` with `inventory_low_stock_products` and
+`inventory_out_of_stock_products` gauges plus standard FastAPI HTTP metrics.
 
 ## Teardown (avoid AWS charges)
 

@@ -15,9 +15,10 @@
 | 11 | Unknown CSV catalog values → reject + approval request | Auto-create silently | Admin keeps control of catalog quality |
 | 12 | Admin-only auto-create on import (`create_missing`) | Approval for admins too | The admin is already the authorizing party |
 | 13 | USD currency | INR, EUR | Chosen for this deployment |
-| 14 | `t3.small` x3 nodes | `t3.medium` | AWS account is on the Free plan; only free-tier-eligible types can launch |
+| 14 | `t3.small` x4 nodes | `t3.medium` | AWS account is on the Free plan; only free-tier-eligible types can launch. The 4th node provides pod-slot headroom for monitoring |
 | 15 | `gp3` CSI StorageClass | Default `gp2` (in-tree) | EBS CSI addon owns provisioning; gp3 is cheaper/faster than gp2 |
 | 16 | EKS access entry for Terraform identity | Manual `aws-auth` edit | Declarative cluster-admin access for `kubectl` |
+| 17 | kube-prometheus-stack with 10Gi gp3 Prometheus PVC | Managed CloudWatch/Prometheus | Self-hosted, Git-documented, and free; 12h retention fits the dev budget |
 
 ## Naming Conventions
 
