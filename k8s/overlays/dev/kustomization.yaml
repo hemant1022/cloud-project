@@ -9,10 +9,10 @@ resources:
 images:
 - name: inventory-backend
   newName: 305678528024.dkr.ecr.us-east-1.amazonaws.com/tier3app
-  newTag: backend-edd2fd36da7d066920aca3626bd4344cc09bed7d
+  newTag: backend-5e5a618f11dd0766083b5971dc888a49a6e50c59
 - name: inventory-frontend
   newName: 305678528024.dkr.ecr.us-east-1.amazonaws.com/tier3app
-  newTag: frontend-edd2fd36da7d066920aca3626bd4344cc09bed7d
+  newTag: frontend-5e5a618f11dd0766083b5971dc888a49a6e50c59
 
 replicas:
 - count: 2
