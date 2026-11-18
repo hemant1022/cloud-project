@@ -68,7 +68,9 @@ This provisions the Terraform state backend, VPC/EKS, AWS Load Balancer Controll
 backend/frontend ECR images (building any missing tags), application secret, ArgoCD, the
 app-of-apps, and the monitoring stack, then prints the application, ArgoCD, and Grafana
 credentials. The database uses the upstream `postgres:16-alpine` image; `init.sql` and the
-seed CSVs are mounted from a generated ConfigMap.
+seed CSVs are mounted from a generated ConfigMap. ArgoCD is configured globally with
+`kustomize.buildOptions: --load-restrictor LoadRestrictionsNone` so it can read those files
+from `app/db/`.
 
 Useful options:
 

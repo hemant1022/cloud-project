@@ -359,6 +359,14 @@ function Ensure-ArgoCD {
     kubectl -n argocd rollout status statefulset/argocd-application-controller --timeout=10m
     Assert-LastExitCode "ArgoCD application controller did not become ready"
 
+    Write-Step "Configuring ArgoCD global Kustomize options"
+    kubectl -n argocd patch configmap argocd-cm --type merge --patch-file (Join-Path $RepoRoot "k8s/argocd/argocd-cm-patch.json")
+    Assert-LastExitCode "Unable to configure ArgoCD global Kustomize options"
+    kubectl -n argocd rollout restart deployment/argocd-repo-server
+    Assert-LastExitCode "Unable to restart argocd-repo-server"
+    kubectl -n argocd rollout status deployment/argocd-repo-server --timeout=5m
+    Assert-LastExitCode "argocd-repo-server did not become ready after applying Kustomize options"
+
     Write-Step "Registering the app-of-apps"
     kubectl apply -f (Join-Path $RepoRoot "k8s/argocd/app-of-apps.yaml")
     Assert-LastExitCode "Unable to apply the ArgoCD app-of-apps"

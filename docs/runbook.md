@@ -227,9 +227,18 @@ Install ArgoCD and register the app-of-apps:
 
 `inventory-apps` syncs `k8s/argocd/apps/`, which contains `inventory-dev` pointing at
 `k8s/overlays/dev`. Image tags there are updated by CI; do not edit them by hand.
-The `inventory-dev` Application sets `kustomize.buildOptions:
---load-restrictor LoadRestrictionsNone` because the database init ConfigMap reads files
-from `app/db/`, outside the overlay root. Verify the rendered images:
+`start.ps1` patches `argocd-cm` with `kustomize.buildOptions:
+--load-restrictor LoadRestrictionsNone` and restarts `argocd-repo-server` because the
+database init ConfigMap reads files from `app/db/`, outside the overlay root. To apply it
+manually:
+
+```powershell
+kubectl -n argocd patch configmap argocd-cm --type merge `
+  --patch-file k8s/argocd/argocd-cm-patch.json
+kubectl -n argocd rollout restart deployment/argocd-repo-server
+```
+
+Verify the rendered images:
 
 ```powershell
 kubectl kustomize --load-restrictor LoadRestrictionsNone k8s/overlays/dev | Select-String "image:"
