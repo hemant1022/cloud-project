@@ -9,10 +9,10 @@ resources:
 images:
 - name: inventory-backend
   newName: 305678528024.dkr.ecr.us-east-1.amazonaws.com/tier3app
-  newTag: backend-52552b0402928b21ce8725bfa55f8c9307cce182
+  newTag: backend-edd2fd36da7d066920aca3626bd4344cc09bed7d
 - name: inventory-frontend
   newName: 305678528024.dkr.ecr.us-east-1.amazonaws.com/tier3app
-  newTag: frontend-52552b0402928b21ce8725bfa55f8c9307cce182
+  newTag: frontend-edd2fd36da7d066920aca3626bd4344cc09bed7d
 
 replicas:
 - count: 2
@@ -21,9 +21,9 @@ replicas:
   name: frontend
 
 configMapGenerator:
-- name: inventory-db-init
-  files:
+- files:
   - ../../../app/db/init.sql
   - ../../../app/db/seed/categories.csv
   - ../../../app/db/seed/suppliers.csv
   - ../../../app/db/seed/products.csv
+  name: inventory-db-init
