@@ -13,7 +13,7 @@ CSV, watch low-stock alerts, and see total inventory value in real time.
 - Admin approval queue for categories/suppliers introduced by CSV imports
 - JWT authentication with `admin`, `manager`, and `viewer` roles
 - Per-run and combined application logs
-- Infrastructure, CI/CD, GitOps, and monitoring scaffolding for EKS
+- Infrastructure, CI/CD, GitOps, and monitoring on EKS
 
 ## Stack
 
@@ -23,10 +23,10 @@ CSV, watch low-stock alerts, and see total inventory value in real time.
 | Backend    | FastAPI + SQLAlchemy 2 + PostgreSQL + PyJWT + Argon2 |
 | Database   | PostgreSQL 16 |
 | Local      | Docker Compose |
-| Infra      | Terraform (VPC, EKS, IAM/OIDC) — scaffolded |
-| CI/CD      | GitHub Actions → Amazon ECR — workflow added |
-| GitOps     | ArgoCD + Kustomize — manifests added |
-| Monitoring | kube-prometheus-stack — scaffolded |
+| Infra      | Terraform (VPC, EKS, IAM/OIDC) |
+| CI/CD      | GitHub Actions → Amazon ECR |
+| GitOps     | ArgoCD + Kustomize |
+| Monitoring | kube-prometheus-stack |
 
 ## Quickstart (Docker Compose)
 
@@ -48,6 +48,44 @@ Seed data loads on first database initialization. To reload after changing seed 
 docker compose -f docker/docker-compose.yml down -v
 docker compose -f docker/docker-compose.yml up -d --build
 ```
+
+On EKS the same files are mounted from the `inventory-db-init` ConfigMap. Postgres only
+runs init scripts on an empty data directory, so recreating the database PVC or namespace
+is required to reload changed seed data.
+
+## One-command AWS lifecycle
+
+Requires AWS credentials plus Terraform, kubectl, Helm, and Docker. Push the manifests to
+GitHub first because ArgoCD reads `origin/main`.
+
+Deploy everything:
+
+```powershell
+.\start.ps1
+```
+
+This provisions the Terraform state backend, VPC/EKS, AWS Load Balancer Controller,
+backend/frontend ECR images (building any missing tags), application secret, ArgoCD, the
+app-of-apps, and the monitoring stack, then prints the application, ArgoCD, and Grafana
+credentials. The database uses the upstream `postgres:16-alpine` image; `init.sql` and the
+seed CSVs are mounted from a generated ConfigMap.
+
+Useful options:
+
+```powershell
+.\start.ps1 -SkipMonitoring
+.\start.ps1 -SkipImageBuild
+```
+
+Tear everything down:
+
+```powershell
+.\stop.ps1
+```
+
+This deletes the Kubernetes workloads, EKS/VPC, ECR repository and images, and the
+Terraform state backend. Type `destroy` to confirm, or use `-Force`. Keep selected
+resources with `-KeepImages` or `-KeepState`, and preview changes with `-DryRun`.
 
 ## Seed Data
 
@@ -104,7 +142,7 @@ docker/       docker-compose.yml + .env.example
 infra/        Terraform bootstrap, modules, environments
 k8s/          Kustomize base/overlays + ArgoCD apps
 monitoring/   Prometheus values, alerts, Grafana dashboards
-scripts/      run-logged.ps1, seed adapter
+scripts/      Deploy/teardown, run-logged.ps1, seed adapter
 logs/         per-stack and combined run logs (git-ignored)
 docs/         plan, architecture, decisions, runbook
 ```
@@ -125,7 +163,7 @@ CSV import summaries, and uncaught exceptions. See `logs/README.md`.
 
 1. Application + database + Docker (done)
 2. JWT auth, approvals, CSV import (done)
-3. Terraform: VPC, EKS, IAM/OIDC (pending Terraform install)
-4. GitHub Actions: tests, ECR push, GitOps tag bump (workflow added; add AWS secrets)
-5. ArgoCD deployment (manifests added; install on cluster pending)
-6. Prometheus + Grafana monitoring
+3. Terraform: VPC, EKS, IAM/OIDC (done)
+4. GitHub Actions: tests, ECR push, GitOps tag bump (done; OIDC migration and PR trigger pending)
+5. ArgoCD deployment (done)
+6. Prometheus + Grafana monitoring (done)

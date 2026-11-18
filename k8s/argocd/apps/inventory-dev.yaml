@@ -11,6 +11,8 @@ spec:
     repoURL: https://github.com/hemant1022/cloud-project.git
     targetRevision: main
     path: k8s/overlays/dev
+    kustomize:
+      buildOptions: --load-restrictor LoadRestrictionsNone
   destination:
     server: https://kubernetes.default.svc
     namespace: inventory

@@ -97,17 +97,6 @@ jobs:
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
 
-      - name: Build and push database image
-        uses: docker/build-push-action@v6
-        with:
-          context: app/db
-          push: true
-          tags: |
-            ${{ steps.login_ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:db-${{ env.IMAGE_TAG }}
-            ${{ steps.login_ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:db-latest
-          cache-from: type=gha,scope=db
-          cache-to: type=gha,mode=max,scope=db
-
   continuous_deployment:
     name: Continuous-Deployment
     needs: continuous_integration
@@ -143,9 +132,8 @@ jobs:
           test -n "$REGISTRY" || { echo "Empty ECR registry"; exit 1; }
           kustomize edit set image \
             "inventory-backend=${REGISTRY}/${ECR_REPOSITORY}:backend-${IMAGE_TAG}" \
-            "inventory-frontend=${REGISTRY}/${ECR_REPOSITORY}:frontend-${IMAGE_TAG}" \
-            "inventory-db=${REGISTRY}/${ECR_REPOSITORY}:db-${IMAGE_TAG}"
-          kustomize build . > /dev/null
+            "inventory-frontend=${REGISTRY}/${ECR_REPOSITORY}:frontend-${IMAGE_TAG}"
+          kustomize build --load-restrictor LoadRestrictionsNone . > /dev/null
 
       - name: Commit and push GitOps tag bump
         run: |

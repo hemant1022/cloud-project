@@ -55,14 +55,14 @@ Folders: `.github/workflows`, `logs/ci`
 - [x] Backend pytest + frontend build
 - [x] Authenticate to ECR with repository secrets (OIDC role recommended later)
 - [x] Build images tagged `sha-${{ github.sha }}` and `latest`
-- [x] Push backend, frontend, and database images to ECR
+- [x] Push backend and frontend images to ECR
 - [x] Bump image tags in `k8s/overlays/dev/kustomization.yaml`
 - [ ] Replace static AWS keys with a GitHub OIDC role
 
 Secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`, and the
-required `ECR_REPOSITORY` variable (or secret). All images are pushed to that single
-repository with component tags (`backend-<sha>`, `frontend-<sha>`, `db-<sha>`).
-Acceptance: workflow green; three images in ECR; bot commit updates the overlay tags
+required `ECR_REPOSITORY` variable (or secret). Application images are pushed to that
+single repository with component tags (`backend-<sha>`, `frontend-<sha>`).
+Acceptance: workflow green; two images in ECR; bot commit updates the overlay tags
 and ArgoCD syncs them.
 
 ## Phase 5 — GitOps Deployment (ArgoCD)
@@ -70,7 +70,7 @@ and ArgoCD syncs them.
 Folders: `k8s/base`, `k8s/overlays/{dev,prod}`, `k8s/argocd`, `logs/argocd`
 
 - [x] Kustomize base: deployments, services, configmap, secret template, ingress, PVC
-- [x] Postgres StatefulSet + PVC using an ECR-hosted DB image with seed data
+- [x] Postgres StatefulSet + PVC using upstream `postgres:16-alpine` with seed data from a ConfigMap
 - [x] Overlays for dev/prod (image tags, replicas)
 - [x] App-of-apps and `inventory-dev` Application manifests
 - [x] Install ArgoCD and bootstrap the app-of-apps on the cluster

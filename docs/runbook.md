@@ -149,7 +149,7 @@ Notes:
   own access entry.
 - The EKS module ignores `desired_size` drift so a cluster autoscaler can own it.
   Resize an existing group with
-  `aws eks update-nodegroup-config --cluster-name cloud-project-dev --nodegroup-name <name> --scaling-config minSize=2,maxSize=4,desiredSize=3`.
+  `aws eks update-nodegroup-config --cluster-name cloud-project-dev --nodegroup-name <name> --scaling-config minSize=2,maxSize=5,desiredSize=4`.
 - If the Terraform CLI is killed mid-apply, clear a stale state lock with
   `terraform -chdir=infra/envs/dev force-unlock <lock-id>` after confirming no
   `terraform` process is running.
@@ -160,11 +160,15 @@ Notes:
 
 1. Backend pytest and frontend production build.
 2. Login to ECR with repository secrets.
-3. Build and push three images into the ECR repository named by `ECR_REPOSITORY`,
-   tagged `backend-<sha>`, `frontend-<sha>`, `db-<sha>` (plus `backend-latest`,
-   `frontend-latest`, `db-latest`).
+3. Build and push the backend and frontend images into the ECR repository named by
+   `ECR_REPOSITORY`, tagged `backend-<sha>` and `frontend-<sha>` (plus `backend-latest`
+   and `frontend-latest`).
 4. Bump the image tags in `k8s/overlays/dev/kustomization.yaml` and push the commit
    (ArgoCD then syncs it).
+
+The database runs the upstream `postgres:16-alpine` image. `app/db/init.sql` and the
+seed CSVs are mounted from a Kustomize-generated `inventory-db-init` ConfigMap, so no
+database image is built or stored in ECR.
 
 > **Important:** `.env` files and Windows environment variables are local only.
 > GitHub Actions runs on GitHub's runners and does not read them. Add the values in
@@ -195,7 +199,7 @@ Run the same checks locally before pushing:
 .\scripts\run-logged.ps1 -Stack ci -Phase 04 -Action tests `
   -Command "app\backend\.venv\Scripts\python -m pytest app\backend\tests -q"
 cd app\frontend; npm run build
-kubectl kustomize k8s/overlays/dev > $null
+kubectl kustomize --load-restrictor LoadRestrictionsNone k8s/overlays/dev > $null
 ```
 
 ## Phase 5 — ArgoCD
@@ -223,10 +227,12 @@ Install ArgoCD and register the app-of-apps:
 
 `inventory-apps` syncs `k8s/argocd/apps/`, which contains `inventory-dev` pointing at
 `k8s/overlays/dev`. Image tags there are updated by CI; do not edit them by hand.
-Verify the placeholders in the overlay have been replaced with real ECR URIs:
+The `inventory-dev` Application sets `kustomize.buildOptions:
+--load-restrictor LoadRestrictionsNone` because the database init ConfigMap reads files
+from `app/db/`, outside the overlay root. Verify the rendered images:
 
 ```powershell
-kubectl kustomize k8s/overlays/dev | Select-String "image:"
+kubectl kustomize --load-restrictor LoadRestrictionsNone k8s/overlays/dev | Select-String "image:"
 ```
 
 UI: `kubectl -n argocd port-forward svc/argocd-server 8080:443`
@@ -259,7 +265,7 @@ helm repo update
 helm upgrade --install monitoring prometheus-community/kube-prometheus-stack `
   --namespace monitoring --version 93.3.0 `
   --values monitoring/prometheus/values.yaml `
-  --skip-crds --wait --timeout 12m
+  --skip-crds --wait --timeout 15m
 ```
 
 Apply the backend ServiceMonitor, alert rules, and Grafana dashboard after the
@@ -301,12 +307,44 @@ Query Prometheus for `up{namespace="inventory",service="backend"}` and
 and `InventoryOutOfStock` to `firing` after five minutes. Alertmanager receives
 them even though the dev receiver is intentionally `null`.
 
+## One-command lifecycle
+
+`start.ps1` and `stop.ps1` wrap `scripts/deploy-all.ps1` and `scripts/destroy-all.ps1`.
+
+```powershell
+.\start.ps1
+.\start.ps1 -SkipMonitoring
+.\start.ps1 -SkipImageBuild
+
+.\stop.ps1
+.\stop.ps1 -Force -KeepImages -KeepState
+.\stop.ps1 -DryRun
+```
+
+`start.ps1` requires AWS credentials plus Terraform, kubectl, Helm, and Docker, and it
+assumes the Git manifests are already pushed to `origin/main` because ArgoCD reads them
+from GitHub. It prints the frontend URL and the generated application, ArgoCD, and Grafana
+credentials.
+
+`stop.ps1` deletes the ArgoCD applications, releases the load balancer, removes the EKS
+environment, and by default also deletes the ECR repository and Terraform state backend.
+Use `-KeepImages` or `-KeepState` to retain those, and `-Force` to skip the confirmation
+prompt. `-DryRun` reports what exists without deleting anything.
+
 ## Teardown (avoid AWS charges)
 
 ```powershell
-.\scripts\run-logged.ps1 -Stack terraform -Phase 03 -Action destroy `
-  -Command "terraform -chdir=infra/envs/dev destroy -auto-approve"
+.\stop.ps1
 ```
 
-Destroy the EKS environment before the bootstrap bucket. Remove leftover ELBs, ENIs, and
-EBS volumes created by Kubernetes, then delete the S3 bucket and DynamoDB table.
+The script waits for Kubernetes-created load balancers and retries Terraform destroy once
+after cleaning up leftover load balancers and security groups. If it still fails, remove
+remaining ELBs, ENIs, and EBS volumes created by Kubernetes, then re-run:
+
+```powershell
+.\stop.ps1 -KeepImages -KeepState
+terraform -chdir=infra/envs/dev destroy -auto-approve
+```
+
+Destroy the EKS environment before the bootstrap bucket. `.\stop.ps1 -Force` includes the
+state backend by default; `-KeepState` leaves the S3 bucket and DynamoDB table in place.

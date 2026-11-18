@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: inventory-db:latest
+          image: postgres:16-alpine
           imagePullPolicy: IfNotPresent
           ports:
             - name: postgres
@@ -67,6 +67,22 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+      volumes:
+        - name: init
+          configMap:
+            name: inventory-db-init
+            items:
+              - key: init.sql
+                path: 01_init.sql
+              - key: categories.csv
+                path: seed/categories.csv
+              - key: suppliers.csv
+                path: seed/suppliers.csv
+              - key: products.csv
+                path: seed/products.csv
   volumeClaimTemplates:
     - metadata:
         name: data
